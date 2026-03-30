@@ -1,0 +1,44 @@
+# Credentials — NE JAMAIS COMMIT
+.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Rapports générés
+bleedings_*.html
+bleedings_*.json
+bleedings_*.csv
+bleedings_*.xlsx
+
+# Loot et output (données sensibles)
+loot/
+out/
+
+# Checkpoints
+bleedings_checkpoint_*.json
+
+# IDE
+.vscode/
+.idea/
+
+# pytest
+.pytest_cache/
+
+# Claude Code config
+.claude/
+claude/
+CLAUDE.md
+
+# Generated reports (local)
+rapport_*.json
+rapport_*.html
+
+# Scan input files
+input*.txt

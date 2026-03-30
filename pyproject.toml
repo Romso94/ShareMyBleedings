@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sharemybleedings"
+version = "0.1.0"
+description = "Audit des partages SMB permissifs — découverte, énumération, ACL, rapport"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "typer>=0.9,<1.0",
+    "rich>=13.0,<14.0",
+    "impacket>=0.11,<1.0",
+    "Jinja2>=3.1,<4.0",
+]
+
+[project.optional-dependencies]
+nmap = ["python-nmap>=0.7,<1.0"]
+xlsx = ["openpyxl>=3.1,<4.0"]
+dev = ["pytest>=7.0,<9.0", "pytest-asyncio>=0.21,<1.0"]
+
+[project.scripts]
+bleedings = "smb_bleedings.main:app"
+
+[tool.setuptools.packages.find]
+include = ["smb_bleedings*"]
+
+[tool.setuptools.package-data]
+"smb_bleedings.utils" = ["templates/*.j2", "templates/*.html"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

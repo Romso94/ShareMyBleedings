@@ -1,0 +1,17 @@
+services:
+  bleedings:
+    build: .
+    image: sharemybleedings:latest
+    container_name: sharemybleedings
+    # SECURITY: host networking required for direct SMB (port 445) access.
+    # This removes container network isolation — use only in trusted environments.
+    network_mode: host
+    volumes:
+      - ./out:/out
+      - ./loot:/loot
+    env_file:
+      - path: ./.env
+        required: false
+    # Override at runtime:
+    #   docker compose run --rm bleedings scan 192.168.1.0/24 --scan-content -k password -o /out/report.html --no-browser
+    command: ["--help"]

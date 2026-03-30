@@ -1,0 +1,38 @@
+[scan]
+threads = 30
+timeout = 3.0
+exclude_system_shares = true
+include_read_only = false
+
+[credentials]
+# Laissé vide = session anonyme / guest
+username = ""
+password = ""
+domain = ""
+# dc = "dc01.domain.local"  # Domain Controller for LDAP SID resolution
+
+[risk]
+# Groupes considérés comme "larges" (EN + FR)
+dangerous_groups = [
+  "Everyone",
+  "Tout le monde",
+  "Authenticated Users",
+  "Utilisateurs authentifiés",
+  "NT AUTHORITY\\Authenticated Users",
+  "Domain Users",
+  "Utilisateurs du domaine",
+  "BUILTIN\\Users",
+  "Utilisateurs",
+]
+
+[content_scan]
+# enabled = false
+# keywords = ["password", "secret", "iban"]
+# extensions = []           # empty = default whitelist (txt, doc, pdf, etc.)
+# loot_dir = "./loot"
+# max_filesize = "10M"
+# keep_loot = true
+
+[output]
+default_format = "json"   # json | csv | xlsx | all  (HTML removed from scan — use 'bleedings dashboard')
+open_browser = true
