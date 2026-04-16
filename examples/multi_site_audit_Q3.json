@@ -1,0 +1,371 @@
+{
+  "meta": {
+    "tool": "ShareMyBleedings",
+    "version": "1.0.0",
+    "title": "Multi-Site SMB Audit Q3 - Paris + Lyon + Remote (post-remediation)",
+    "generated_at": "2026-07-12T08:22:51.443000+00:00",
+    "duration_seconds": 264.1,
+    "ranges": [
+      "10.10.1.0/24",
+      "10.10.2.0/24",
+      "10.20.1.0/24",
+      "172.16.50.0/24"
+    ],
+    "total_ips_scanned": 1024,
+    "hosts_discovered": 11,
+    "lang": "en"
+  },
+  "summary": {
+    "critical": 0,
+    "high": 2,
+    "medium": 3,
+    "info": 4,
+    "total_findings": 9,
+    "hosts_with_findings": 7
+  },
+  "findings": [
+    {
+      "risk_level": "HIGH",
+      "risk_score": 65,
+      "host": {
+        "ip": "172.16.50.100",
+        "hostname": "WKST-REMOTE42",
+        "smb_version": "SMB 2.0.2",
+        "signing_required": false
+      },
+      "share": {
+        "name": "RemoteTools",
+        "unc_path": "\\\\WKST-REMOTE42\\RemoteTools",
+        "description": "Outils teleacces",
+        "share_type": "disk",
+        "anonymous_access": true,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Everyone", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Everyone", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ANONYMOUS LOGON", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[RemoteTools] 'Everyone' Read still present \u2014 host now identified as WKST-REMOTE42 but anonymous access remains"
+      ],
+      "impacts": [
+        "[RemoteTools] VPN configs and tools still accessible without authentication"
+      ],
+      "recommendations": [
+        "Escalated to IT manager. Disable anonymous access and restrict to managed endpoints.",
+        "Consider decommissioning this unmanaged share."
+      ],
+      "content_matches": [
+        {
+          "file_path": "tools/vpn_config.ovpn",
+          "file_size": 4200,
+          "matched_keywords": ["BEGIN PRIVATE KEY", "remote", "auth-user-pass"],
+          "local_loot_path": null,
+          "sha256": "2233445566778899001122334455667788990011223344556677889900112233"
+        }
+      ]
+    },
+    {
+      "risk_level": "HIGH",
+      "risk_score": 70,
+      "host": {
+        "ip": "10.10.2.30",
+        "hostname": "SRV-COLLAB01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Juridique",
+        "unc_path": "\\\\SRV-COLLAB01.acme.corp\\Juridique",
+        "description": "Documents juridiques",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read", "write"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Change", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\GRP-Legal", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Juridique] 'Authenticated Users' Change NOT remediated \u2014 legal team delayed migration"
+      ],
+      "impacts": [
+        "[Juridique] Legal documents still modifiable by any employee \u2014 attorney-client privilege at risk"
+      ],
+      "recommendations": [
+        "Priority: restrict to GRP-Legal only. Remediation ticket JIRA-SEC-2847 open since Q2."
+      ],
+      "content_matches": [
+        {
+          "file_path": "Contrats/NDA_partenaire_XYZ_2026.pdf",
+          "file_size": 345000,
+          "matched_keywords": ["confidentiel", "penalite"],
+          "local_loot_path": null,
+          "sha256": "3344556677889900112233445566778899001122334455667788990011223344"
+        }
+      ]
+    },
+    {
+      "risk_level": "MEDIUM",
+      "risk_score": 45,
+      "host": {
+        "ip": "10.10.1.5",
+        "hostname": "DC-PARIS01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "GPO-Scripts",
+        "unc_path": "\\\\DC-PARIS01.acme.corp\\GPO-Scripts",
+        "description": "Group Policy deployment scripts",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\GRP-SysAdmin", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[GPO-Scripts] Domain Users Read unchanged \u2014 risk accepted by CISO"
+      ],
+      "impacts": [
+        "[GPO-Scripts] All employees can read deployment scripts \u2014 accepted risk"
+      ],
+      "recommendations": [
+        "Risk accepted. Review at next audit cycle."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "MEDIUM",
+      "risk_score": 40,
+      "host": {
+        "ip": "10.20.1.25",
+        "hostname": "SRV-LYON-APP01.acme.corp",
+        "smb_version": "SMB 3.0.2",
+        "signing_required": true
+      },
+      "share": {
+        "name": "AppData",
+        "unc_path": "\\\\SRV-LYON-APP01.acme.corp\\AppData",
+        "description": "Application data warehouse",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\SVC-AppLyon", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[AppData] Domain Users Read unchanged \u2014 remediation planned for Q4"
+      ],
+      "impacts": [
+        "[AppData] Broad read access to application data \u2014 PII exposure possible"
+      ],
+      "recommendations": [
+        "Remediation ticket JIRA-SEC-2901 scheduled for Q4. Restrict to application team group."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "MEDIUM",
+      "risk_score": 35,
+      "host": {
+        "ip": "10.10.2.40",
+        "hostname": "SRV-MON01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Monitoring",
+        "unc_path": "\\\\SRV-MON01.acme.corp\\Monitoring",
+        "description": "Monitoring exports and reports",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\GRP-Monitoring", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Monitoring] Authenticated Users Read unchanged \u2014 risk accepted"
+      ],
+      "impacts": [
+        "[Monitoring] Low business impact \u2014 monitoring data is operational, not confidential"
+      ],
+      "recommendations": [
+        "Risk accepted. No action required."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 15,
+      "host": {
+        "ip": "10.10.1.20",
+        "hostname": "FS-PARIS01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Echanges",
+        "unc_path": "\\\\FS-PARIS01.acme.corp\\Echanges",
+        "description": "Inter-department file exchange",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "ACME\\GRP-AllStaff", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "ACME\\GRP-AllStaff", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\GRP-Finance", "access_right": "Change", "ace_type": "Allow"},
+        {"account": "ACME\\GRP-HR", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Echanges] Remediated: 'Everyone Full' replaced with per-department groups \u2014 now properly scoped"
+      ],
+      "impacts": [
+        "[Echanges] Access now follows least-privilege with department-level granularity"
+      ],
+      "recommendations": [
+        "No action required. Good remediation. Sensitive files moved to department-specific shares."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 10,
+      "host": {
+        "ip": "10.10.1.5",
+        "hostname": "DC-PARIS01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "NETLOGON",
+        "unc_path": "\\\\DC-PARIS01.acme.corp\\NETLOGON",
+        "description": "Logon server share",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "SYSTEM", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[NETLOGON] Standard AD share \u2014 expected configuration"
+      ],
+      "impacts": [
+        "[NETLOGON] Compliant with Active Directory best practices"
+      ],
+      "recommendations": [
+        "No action required."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 10,
+      "host": {
+        "ip": "10.10.1.5",
+        "hostname": "DC-PARIS01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "SYSVOL",
+        "unc_path": "\\\\DC-PARIS01.acme.corp\\SYSVOL",
+        "description": "Logon server share",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "SYSTEM", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\Domain Controllers", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[SYSVOL] Standard AD share \u2014 expected configuration"
+      ],
+      "impacts": [
+        "[SYSVOL] Compliant with Active Directory best practices"
+      ],
+      "recommendations": [
+        "No action required. DFS-R replication confirmed operational."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 15,
+      "host": {
+        "ip": "10.10.2.30",
+        "hostname": "SRV-COLLAB01.acme.corp",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Docs-Public",
+        "unc_path": "\\\\SRV-COLLAB01.acme.corp\\Docs-Public",
+        "description": "Public documentation and templates",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "ACME\\GRP-Comm", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Docs-Public] Read-only for Domain Users on intentionally public documentation"
+      ],
+      "impacts": [
+        "[Docs-Public] Low risk \u2014 share designed for broad read access"
+      ],
+      "recommendations": [
+        "No action required. Periodic content review recommended."
+      ],
+      "content_matches": []
+    }
+  ]
+}

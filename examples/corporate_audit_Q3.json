@@ -1,0 +1,332 @@
+{
+  "meta": {
+    "tool": "ShareMyBleedings",
+    "version": "1.0.0",
+    "title": "Audit SMB - Siege Social Q3 2026 (post-remediation)",
+    "generated_at": "2026-07-10T10:45:33.127000+00:00",
+    "duration_seconds": 118.2,
+    "ranges": [
+      "192.168.1.0/24",
+      "192.168.2.0/24"
+    ],
+    "total_ips_scanned": 512,
+    "hosts_discovered": 8,
+    "lang": "fr"
+  },
+  "summary": {
+    "critical": 1,
+    "high": 1,
+    "medium": 3,
+    "info": 3,
+    "total_findings": 8,
+    "hosts_with_findings": 6
+  },
+  "findings": [
+    {
+      "risk_level": "CRITICAL",
+      "risk_score": 85,
+      "host": {
+        "ip": "192.168.2.50",
+        "hostname": "SRV-DEV01.corp.local",
+        "smb_version": "SMB 3.0.2",
+        "signing_required": false
+      },
+      "share": {
+        "name": "DevShare",
+        "unc_path": "\\\\SRV-DEV01.corp.local\\DevShare",
+        "description": "Environnement de dev partage",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read", "write"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Change", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "CORP\\GRP-Dev", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[DevShare] 'Authenticated Users' \u2192 Acc\u00e8s Change encore pr\u00e9sent malgr\u00e9 la rem\u00e9diation partielle (anonyme supprim\u00e9, mais scope trop large)"
+      ],
+      "impacts": [
+        "[DevShare] Tout compte AD peut modifier le code source \u2014 risque d'injection de backdoor"
+      ],
+      "recommendations": [
+        "Remplacer 'Authenticated Users' par GRP-Dev. Commande : icacls \"\\\\SRV-DEV01\\DevShare\" /remove \"Authenticated Users\""
+      ],
+      "content_matches": [
+        {
+          "file_path": "webapp/.env.production",
+          "file_size": 890,
+          "matched_keywords": ["SECRET_KEY", "DATABASE_URL"],
+          "local_loot_path": null,
+          "sha256": "1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890"
+        }
+      ]
+    },
+    {
+      "risk_level": "HIGH",
+      "risk_score": 65,
+      "host": {
+        "ip": "192.168.1.25",
+        "hostname": null,
+        "smb_version": "SMB 2.0.2",
+        "signing_required": false
+      },
+      "share": {
+        "name": "Public",
+        "unc_path": "\\\\192.168.1.25\\Public",
+        "description": "",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Everyone", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Everyone", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Public] 'Everyone' \u2192 Acc\u00e8s Read toujours pr\u00e9sent \u2014 non rem\u00e9di\u00e9"
+      ],
+      "impacts": [
+        "[Public] Donn\u00e9es accessibles sans authentification"
+      ],
+      "recommendations": [
+        "Remplacer 'Everyone' par un groupe AD restreint sur 'Public'."
+      ],
+      "content_matches": [
+        {
+          "file_path": "Docs/vpn_access.pdf",
+          "file_size": 156000,
+          "matched_keywords": ["BEGIN PRIVATE KEY", "password"],
+          "local_loot_path": null,
+          "sha256": "f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234"
+        }
+      ]
+    },
+    {
+      "risk_level": "MEDIUM",
+      "risk_score": 45,
+      "host": {
+        "ip": "192.168.1.10",
+        "hostname": "SRV-FILE01.corp.local",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Commun",
+        "unc_path": "\\\\SRV-FILE01.corp.local\\Commun",
+        "description": "Partage commun bureaux",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "CORP\\GRP-Compta", "access_right": "Change", "ace_type": "Allow"},
+        {"account": "SYSTEM", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Commun] Rem\u00e9di\u00e9 : 'Everyone Full' supprim\u00e9 \u2192 'Domain Users Read' reste (scope large mais lecture seule)"
+      ],
+      "impacts": [
+        "[Commun] Tous les employ\u00e9s peuvent lire les fichiers \u2014 v\u00e9rifier si c'est intentionnel"
+      ],
+      "recommendations": [
+        "V\u00e9rifier que Domain Users en lecture est justifi\u00e9 m\u00e9tier. Envisager des groupes par service."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "MEDIUM",
+      "risk_score": 40,
+      "host": {
+        "ip": "192.168.1.10",
+        "hostname": "SRV-FILE01.corp.local",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Projets",
+        "unc_path": "\\\\SRV-FILE01.corp.local\\Projets",
+        "description": "Projets en cours",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Domain Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "CORP\\GS-Projets-RW", "access_right": "Change", "ace_type": "Allow"},
+        {"account": "CORP\\Adm-ERP", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Projets] Rem\u00e9di\u00e9 partiellement : 'Domain Users Change' \u2192 'Domain Users Read'. Groupe d\u00e9di\u00e9 GS-Projets-RW cr\u00e9\u00e9."
+      ],
+      "impacts": [
+        "[Projets] Lecture large mais \u00e9criture restreinte au groupe d\u00e9di\u00e9 \u2014 am\u00e9lioration notable"
+      ],
+      "recommendations": [
+        "Envisager de remplacer 'Domain Users Read' par un groupe de lecture d\u00e9di\u00e9 pour finaliser le moindre privil\u00e8ge."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "MEDIUM",
+      "risk_score": 35,
+      "host": {
+        "ip": "192.168.2.20",
+        "hostname": "SRV-APPLI01.corp.local",
+        "smb_version": "SMB 3.0.2",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Logs",
+        "unc_path": "\\\\SRV-APPLI01.corp.local\\Logs",
+        "description": "Logs applicatifs ERP",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "CORP\\SVC-AppLog", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Logs] 'Authenticated Users' \u2192 Acc\u00e8s Read inchang\u00e9 \u2014 risque accept\u00e9 par le RSSI"
+      ],
+      "impacts": [
+        "[Logs] Exposition large mais lecture seule sur des logs applicatifs"
+      ],
+      "recommendations": [
+        "Risque accept\u00e9. Revoir lors du prochain audit."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 10,
+      "host": {
+        "ip": "192.168.1.5",
+        "hostname": "DC01.corp.local",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "NETLOGON",
+        "unc_path": "\\\\DC01.corp.local\\NETLOGON",
+        "description": "Logon server share",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "SYSTEM", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[NETLOGON] Partage AD l\u00e9gitime \u2014 configuration standard"
+      ],
+      "impacts": [
+        "[NETLOGON] Conforme aux bonnes pratiques Active Directory"
+      ],
+      "recommendations": [
+        "Aucune action requise."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 10,
+      "host": {
+        "ip": "192.168.1.5",
+        "hostname": "DC01.corp.local",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "SYSVOL",
+        "unc_path": "\\\\DC01.corp.local\\SYSVOL",
+        "description": "Logon server share",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "Authenticated Users", "access_right": "Read", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "SYSTEM", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "CORP\\Domain Controllers", "access_right": "Full", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[SYSVOL] Partage AD l\u00e9gitime \u2014 configuration standard"
+      ],
+      "impacts": [
+        "[SYSVOL] Conforme aux bonnes pratiques Active Directory"
+      ],
+      "recommendations": [
+        "Aucune action requise."
+      ],
+      "content_matches": []
+    },
+    {
+      "risk_level": "INFO",
+      "risk_score": 15,
+      "host": {
+        "ip": "192.168.2.15",
+        "hostname": "SRV-PRINT01.corp.local",
+        "smb_version": "SMB 3.1.1",
+        "signing_required": true
+      },
+      "share": {
+        "name": "Scan2Mail",
+        "unc_path": "\\\\SRV-PRINT01.corp.local\\Scan2Mail",
+        "description": "Dossier scanner vers email",
+        "share_type": "disk",
+        "anonymous_access": false,
+        "tested_permissions": ["read"]
+      },
+      "acl": [
+        {"account": "CORP\\GRP-Scanner-Users", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "all_acl": [
+        {"account": "CORP\\GRP-Scanner-Users", "access_right": "Change", "ace_type": "Allow"},
+        {"account": "BUILTIN\\Administrators", "access_right": "Full", "ace_type": "Allow"},
+        {"account": "CORP\\SVC-Scanner", "access_right": "Change", "ace_type": "Allow"}
+      ],
+      "reasons": [
+        "[Scan2Mail] Rem\u00e9di\u00e9 : 'Everyone Change' remplac\u00e9 par groupe d\u00e9di\u00e9 GRP-Scanner-Users"
+      ],
+      "impacts": [
+        "[Scan2Mail] Acc\u00e8s d\u00e9sormais restreint aux utilisateurs l\u00e9gitimes"
+      ],
+      "recommendations": [
+        "Aucune action requise. Bonne rem\u00e9diation."
+      ],
+      "content_matches": []
+    }
+  ]
+}
