@@ -187,6 +187,28 @@ smb_bleedings/
 
 ---
 
+## Demo data
+
+The `examples/` folder contains sample datasets to test the dashboard without a real network:
+
+| File | Description |
+|------|-------------|
+| `corporate_audit.json` | Initial audit — HQ network, 10 findings (FR) |
+| `corporate_audit_Q3.json` | Same network 3 months later — post-remediation |
+| `multi_site_audit.json` | Multi-site audit — Paris/Lyon/Remote, 11 findings (EN) |
+| `multi_site_audit_Q3.json` | Same multi-site network — post-remediation |
+| `demo_dashboard.html` | Pre-generated dashboard |
+
+Import multiple JSON files into the dashboard to compare scan evolution over time.
+
+---
+
+## AI-assisted development
+
+See **[AI_GUIDE.md](AI_GUIDE.md)** — a comprehensive guide designed for CISOs and security engineers who want to use Claude, ChatGPT, or other AI assistants to understand, modify, and improve this project. Contains full architecture docs, prompt examples, and improvement ideas.
+
+---
+
 ## Contributing
 
 1. Fork the repo

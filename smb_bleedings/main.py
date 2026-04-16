@@ -19,6 +19,7 @@ from smb_bleedings.config import PipelineConfig, load_config, load_env
 _quiet = False
 from smb_bleedings.models import (
     AclEntry,
+    ContentMatch,
     Finding,
     Host,
     Share,
@@ -318,9 +319,29 @@ def demo(
             ],
             dangerous_entries=[AclEntry("Tout le monde", "Full", "Allow")],
             risk_level="CRITICAL", risk_score=95,
-            reasons=["[Commun] 'Tout le monde' → Contrôle total accordé à TOUS les utilisateurs (anonymes inclus)"],
-            impacts=["[Commun] N'importe qui peut lire, modifier ou supprimer tous les fichiers de ce partage, même sans compte"],
-            recommendations=["Retirer immédiatement 'Tout le monde' en contrôle total sur 'Commun'. Commande : icacls \"\\\\SRV-FILE01\\Commun\" /remove \"Tout le monde\""],
+            reasons=["[Commun] 'Everyone' → Full control granted to ALL users (anonymous included)"],
+            impacts=["[Commun] Anyone can read, modify or delete every file on this share, even without an account"],
+            recommendations=["Immediately remove 'Everyone' full control on 'Commun'. Command: icacls \"\\\\SRV-FILE01\\Commun\" /remove \"Everyone\""],
+            content_matches=[
+                ContentMatch(
+                    file_path="Comptabilite/config_backup.xml",
+                    file_size=4820,
+                    matched_keywords=["password", "connectionstring"],
+                    sha256="a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890",
+                ),
+                ContentMatch(
+                    file_path="IT/deploy_notes.txt",
+                    file_size=1250,
+                    matched_keywords=["api_key", "token"],
+                    sha256="b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+                ),
+                ContentMatch(
+                    file_path="RH/salaires_2025.xlsx",
+                    file_size=89400,
+                    matched_keywords=["iban", "salaire"],
+                    sha256="c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcd",
+                ),
+            ],
         ),
         Finding(
             share=shares[1],
@@ -332,9 +353,23 @@ def demo(
             ],
             dangerous_entries=[AclEntry("Domain Users", "Change", "Allow")],
             risk_level="CRITICAL", risk_score=85,
-            reasons=["[Projets] 'Domain Users' → Modification possible par tous les utilisateurs du domaine"],
-            impacts=["[Projets] Tout employé peut modifier les fichiers — un compte compromis suffit pour altérer les données"],
-            recommendations=["Créer un groupe de sécurité AD dédié (ex: GS_Projets_RW) et remplacer 'Domain Users' sur 'Projets'. Commande : Remove-SmbShareAccess -Name \"Projets\" -AccountName \"Domain Users\" -Force"],
+            reasons=["[Projets] 'Domain Users' → Change access granted to all domain users"],
+            impacts=["[Projets] Any employee can modify files — a single compromised account is enough to alter data"],
+            recommendations=["Create a dedicated AD security group (e.g. GS_Projets_RW) and replace 'Domain Users' on 'Projets'. Command: Remove-SmbShareAccess -Name \"Projets\" -AccountName \"Domain Users\" -Force"],
+            content_matches=[
+                ContentMatch(
+                    file_path="Infrastructure/credentials.ini",
+                    file_size=520,
+                    matched_keywords=["password", "motdepasse"],
+                    sha256="d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcde1",
+                ),
+                ContentMatch(
+                    file_path="DevOps/docker-compose.prod.yml",
+                    file_size=3200,
+                    matched_keywords=["password", "postgres://"],
+                    sha256="e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+                ),
+            ],
         ),
         Finding(
             share=shares[4],
@@ -345,9 +380,9 @@ def demo(
             ],
             dangerous_entries=[AclEntry("BUILTIN\\Users", "Change", "Allow")],
             risk_level="HIGH", risk_score=70,
-            reasons=["[Backup] 'BUILTIN\\Users' → Modification pour le groupe local Users"],
-            impacts=["[Backup] Les utilisateurs locaux peuvent modifier les fichiers du partage"],
-            recommendations=["Retirer 'BUILTIN\\Users' sur 'Backup' et restreindre aux groupes métier. Commande : icacls \"\\\\NAS-BACKUP\\Backup\" /remove \"BUILTIN\\Users\""],
+            reasons=["[Backup] 'BUILTIN\\Users' → Change access granted to local Users group"],
+            impacts=["[Backup] Local users can modify files on this share"],
+            recommendations=["Remove 'BUILTIN\\Users' on 'Backup' and restrict to business groups. Command: icacls \"\\\\NAS-BACKUP\\Backup\" /remove \"BUILTIN\\Users\""],
         ),
         Finding(
             share=shares[3],
@@ -357,9 +392,17 @@ def demo(
             ],
             dangerous_entries=[AclEntry("Everyone", "Read", "Allow")],
             risk_level="HIGH", risk_score=65,
-            reasons=["[Public] 'Everyone' → Lecture possible par n'importe qui (anonymes inclus)"],
-            impacts=["[Public] Données accessibles sans authentification — fuite d'information potentielle"],
-            recommendations=["Remplacer 'Everyone' par un groupe AD restreint aux utilisateurs légitimes sur 'Public'."],
+            reasons=["[Public] 'Everyone' → Read access granted to anyone (anonymous included)"],
+            impacts=["[Public] Data accessible without authentication — potential information leak"],
+            recommendations=["Replace 'Everyone' with a restricted AD group for legitimate users on 'Public'."],
+            content_matches=[
+                ContentMatch(
+                    file_path="Docs/vpn_access.pdf",
+                    file_size=156000,
+                    matched_keywords=["BEGIN PRIVATE KEY", "password"],
+                    sha256="f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234",
+                ),
+            ],
         ),
         Finding(
             share=shares[8],
@@ -370,9 +413,9 @@ def demo(
             ],
             dangerous_entries=[AclEntry("Domain Users", "Read", "Allow")],
             risk_level="MEDIUM", risk_score=40,
-            reasons=["[Scripts] 'Domain Users' → Lecture pour tous les utilisateurs du domaine"],
-            impacts=["[Scripts] Tous les employés peuvent consulter ces fichiers — vérifier si c'est intentionnel"],
-            recommendations=["Vérifier si l'accès en lecture par 'Domain Users' sur 'Scripts' est justifié métier. Si non, restreindre à un groupe dédié."],
+            reasons=["[Scripts] 'Domain Users' → Read access granted to all domain users"],
+            impacts=["[Scripts] All employees can view these files — verify this is intentional"],
+            recommendations=["Verify that 'Domain Users' read access on 'Scripts' is business-justified. If not, restrict to a dedicated group."],
         ),
         Finding(
             share=shares[7],
@@ -383,9 +426,9 @@ def demo(
             ],
             dangerous_entries=[AclEntry("Authenticated Users", "Read", "Allow")],
             risk_level="MEDIUM", risk_score=35,
-            reasons=["[Logs] 'Authenticated Users' → Lecture pour tout utilisateur authentifié"],
-            impacts=["[Logs] Tout compte peut lire ces données — exposition large mais peut être légitime"],
-            recommendations=["Évaluer si 'Authenticated Users' en lecture sur 'Logs' est nécessaire. Envisager un groupe AD ciblé."],
+            reasons=["[Logs] 'Authenticated Users' → Read access granted to any authenticated user"],
+            impacts=["[Logs] Any account can read this data — broad exposure but may be legitimate"],
+            recommendations=["Evaluate whether 'Authenticated Users' read access on 'Logs' is needed. Consider a targeted AD group."],
         ),
     ]
 
