@@ -2,81 +2,100 @@
 
 > *"Because your network bleeds more than you think."*
 
-SMB share audit toolkit for blue & purple teams. Discovers SMB hosts on your network, enumerates shares, analyzes ACLs, optionally scans file contents for secrets — and produces an interactive HTML report.
+**Read-only** SMB share audit toolkit for blue & purple teams.  
+Discovers SMB hosts, enumerates shares, analyzes ACLs, scans file contents for secrets, and produces an interactive HTML dashboard.
 
-**100% read-only.** Never creates, modifies, or deletes anything on the target shares. Safe to run in production.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 
+## Pipeline
+
+```
+CIDR ranges ──► Discovery ──► Enumeration ──► ACL Analysis ──► Report
+                 TCP/445       SMB shares      Risk scoring     HTML/JSON/CSV
+                 + nmap        + permissions    + recommendations
+                                                     │
+                                              Content Scanning
+                                              (manspider, optional)
+```
+
 ## Features
 
-- 🔍 **Network discovery** — TCP/445 sweep across CIDR ranges (with optional nmap)
-- 📂 **Share enumeration** — anonymous, guest, or authenticated
-- 🔐 **ACL analysis** — flags dangerous ACEs (Everyone / Domain Users / Authenticated Users with Write/Full)
-- 🩸 **Content scanning** — optional integration with [manspider](https://github.com/blacklanternsecurity/MANSPIDER) to find sensitive files (passwords, keys, PII…) — **download only on match**
-- 📊 **Interactive HTML report** — single-file, offline, sortable, searchable, exportable to CSV/PDF
-- 🌐 **Standalone dashboard** — import any scan JSON in your browser, no install needed
-- 🇫🇷🇬🇧 Bilingual output (`--fr` / default English)
+- **Network discovery** — async TCP/445 sweep + optional nmap fallback
+- **Share enumeration** — anonymous, guest, or AD-authenticated
+- **ACL analysis** — risk scoring with bilingual EN/FR explanations
+- **Content scanning** — [manspider](https://github.com/blacklanternsecurity/MANSPIDER) integration (passwords, keys, PII)
+- **Interactive dashboard** — single-file HTML, offline, filterable, CSV/PDF export
+- **Checkpoint/resume** — long scans survive interruptions
+- **Bilingual** — `--fr` for French output
 
 ---
 
 ## Installation
 
-### Option 1 — Native (Linux / WSL, recommended)
+### Native (Linux / WSL)
 
 ```bash
-git clone https://github.com/Romso94/ShareMyBleedings.git ShareMyBleedings
+git clone https://github.com/Romso94/ShareMyBleedings.git
 cd ShareMyBleedings
 ./install.sh
 ```
 
-The installer takes care of:
-- system deps (`nmap`, `libmagic1`, `antiword`, `poppler-utils`, `unrtf`, `tesseract-ocr`, `libreoffice-core`)
-- `manspider` via `pipx`
-- `bleedings` itself via `pipx` (isolated, in your `$PATH`)
+Installs system deps, manspider, and `bleedings` CLI via pipx.  
+Requires **Python >= 3.11** and apt-get (Debian/Ubuntu/WSL).
 
-Requires Python ≥ 3.11 and `apt-get` (Debian/Ubuntu/WSL).
-
-### Option 2 — Docker (zero-install)
+### Docker
 
 ```bash
-git clone https://github.com/Romso94/ShareMyBleedings.git ShareMyBleedings
+git clone https://github.com/Romso94/ShareMyBleedings.git
 cd ShareMyBleedings
 docker compose build
-docker compose run --rm bleedings scan 192.168.1.0/24 -o /out/report.html --no-browser
+docker compose run --rm bleedings scan 192.168.1.0/24 -o /out/report.json
 ```
 
-Reports land in `./out/`, manspider matches in `./loot/`.
+Reports in `./out/`, manspider loot in `./loot/`.
+
+### Manual (pip)
+
+```bash
+pip install -e ".[nmap]"
+```
 
 ---
 
-## Quick start
+## Usage
 
 ```bash
-# Demo report (no network) — sanity check
+# Sanity check — generates demo data, no network needed
 bleedings demo
 
-# Full scan
-bleedings scan 192.168.1.0/24 -u DOMAIN\\user -p '***' \
-    --output report.html --fr
+# Full scan with AD credentials
+bleedings scan 192.168.1.0/24 -u DOMAIN\\user -p '***' -o report.json
 
-# Scan + content search for sensitive files
+# Scan + content search for secrets
 bleedings scan 10.0.0.0/24 -u user -p '***' \
     --scan-content -k password -k api_key -k 'BEGIN.*PRIVATE KEY' \
-    --loot-dir ./loot --output report.html
+    --loot-dir ./loot -o report.json
+
+# French output
+bleedings scan 192.168.1.0/24 -o report.json --fr
 
 # From a file of CIDR ranges
-bleedings scan --ranges-file ranges.txt -o report.html
+bleedings scan -f ranges.txt -o report.json
 
-# Standalone dashboard (import JSON in browser later)
+# Generate standalone dashboard (import JSON in browser)
 bleedings dashboard -o dashboard.html
 ```
 
-### Step-by-step pipeline
+### Step-by-step
+
+Each pipeline stage can run independently:
 
 ```bash
-bleedings discover  192.168.1.0/24 --out hosts.json
-bleedings enumerate --hosts hosts.json --out shares.json
+bleedings discover  192.168.1.0/24     --out hosts.json
+bleedings enumerate --hosts hosts.json  --out shares.json
 bleedings analyze   --shares shares.json --out findings.json
 bleedings report    --findings findings.json --out report.html
 ```
@@ -85,7 +104,7 @@ bleedings report    --findings findings.json --out report.html
 
 ## Configuration
 
-### `.env` (credentials)
+Copy `.env.example` to `.env`:
 
 ```env
 SMB_USERNAME=DOMAIN\user
@@ -95,64 +114,85 @@ SMB_DC=dc01.domain.local
 SMB_RANGES=192.168.1.0/24,10.0.0.0/24
 ```
 
-### `config.toml` (optional)
+Optional TOML config — see [`config.example.toml`](config.example.toml).
 
-```toml
-[scan]
-threads = 30
-timeout = 3.0
-exclude_system_shares = true
+Priority: **CLI flags > .env > config.toml > defaults**.
 
-[credentials]
-username = ""
-password = ""
-domain = ""
-dc = ""
+---
 
-[content_scan]
-enabled = false
-keywords = ["password", "api[_-]?key", "BEGIN.*PRIVATE KEY"]
-extensions = ["txt", "conf", "ini", "env", "yml", "json", "xlsx", "docx"]
-loot_dir = "./loot"
-max_filesize = "10M"
-keep_loot = true
+## Safety
 
-[output]
-default_format = "html"
-open_browser = true
+ShareMyBleedings is **strictly read-only** on target shares:
+
+| Stage | Operation |
+|-------|-----------|
+| Discovery | TCP connect on port 445 |
+| Enumeration | `NetShareEnum` (list only) |
+| Permission test | `openFile()` with WRITE/DELETE bits — handle closed immediately, writes nothing |
+| ACL analysis | `READ_CONTROL` + `queryInfo(SECURITY)` |
+| Content scan | manspider in read-only mode (downloads matching files only) |
+
+> **Note:** Permission probes may trigger Windows Event ID **4663** if file auditing (SACL) is enabled. Coordinate with your SOC before scanning monitored networks.
+
+---
+
+## Risk scoring
+
+| Condition | Level | Score |
+|-----------|-------|-------|
+| Everyone + Full/Change | CRITICAL | 95 |
+| Domain Users + Full/Change | CRITICAL | 90 |
+| Authenticated Users + Full/Change | CRITICAL | 85 |
+| BUILTIN\Users + Full/Change | HIGH | 75 |
+| Everyone + Read | HIGH | 65 |
+| Domain Users + Read | MEDIUM | 40 |
+| Authenticated Users + Read | MEDIUM | 35 |
+
+AD-legitimate shares (NETLOGON, SYSVOL) with standard read access are auto-downgraded to INFO.  
+System shares (ADMIN$, IPC$, C$) are excluded by default.
+
+---
+
+## Output formats
+
+| Format | Description |
+|--------|-------------|
+| **JSON** | Full structured data — use with the dashboard or your own tooling |
+| **HTML dashboard** | Single-file, offline, dark/light theme, search, CSV export |
+| **CSV** | One row per finding, UTF-8 BOM + `;` separator (Excel-friendly) |
+| **XLSX** | Multi-sheet workbook (requires `pip install ".[xlsx]"`) |
+
+---
+
+## Project structure
+
+```
+smb_bleedings/
+├── agents/
+│   ├── discovery.py        # Stage 1: network scan
+│   ├── enumerator.py       # Stage 2: share listing
+│   ├── acl_analyzer.py     # Stage 3: ACL + risk scoring
+│   ├── content_scanner.py  # Optional: manspider wrapper
+│   └── reporter.py         # Stage 4: output generation
+├── utils/
+│   ├── risk.py             # Risk matrix + scoring logic
+│   ├── sid_resolver.py     # SID → name via LDAP
+│   ├── cidr.py             # CIDR parsing
+│   └── templates/          # Jinja2 + dashboard HTML
+├── models.py               # Dataclasses (Host, Share, Finding...)
+├── config.py               # Config loading (TOML + .env)
+├── pipeline.py             # Orchestrator
+└── main.py                 # Typer CLI
 ```
 
 ---
 
-## Safety guarantees
+## Contributing
 
-ShareMyBleedings is **strictly read-only** on target SMB shares:
-
-| Component       | What it does on the share                                              |
-|-----------------|------------------------------------------------------------------------|
-| Discovery       | TCP connect on port 445                                                |
-| Enumeration     | `NetShareEnum` (lists shares only)                                     |
-| Permission test | `openFile()` with WRITE/DELETE access bits → handle closed immediately. **Triggers an ACL check server-side, but writes nothing.** |
-| ACL analysis    | `READ_CONTROL` + `queryInfo(SECURITY)`                                 |
-| Content scan    | `manspider` spider (read-only by design, downloads only files matching your keywords) |
-
-> ⚠️ Permission probes may generate Windows Event ID **4663** if file auditing (SACL) is enabled. This is a *detection* signal, not a modification. Coordinate with your blue team before scanning monitored networks.
-
----
-
-## Reports
-
-- **HTML** — single-file, offline, dark/light theme, search, CSV export, print-friendly PDF
-- **JSON** — full structured data (use with the dashboard, or your own tooling)
-- **CSV** — one row per dangerous ACE, UTF-8 BOM + `;` separator (Excel-friendly)
-
-The standalone dashboard (`bleedings dashboard`) lets anyone load a JSON scan in a browser — no Python, no install.
-
----
-
-## Tech stack
-
-Python 3.11+ · Typer · Rich · impacket · python-nmap · Jinja2 · ldap3 · manspider
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feat/my-feature`)
+3. Run tests: `pytest`
+4. Open a PR
 
 ---
 
