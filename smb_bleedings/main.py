@@ -274,14 +274,19 @@ def scan(
 
 
 @app.command()
-def demo(
-    output: Annotated[str, typer.Option("--output", "-o", help="Fichier de sortie")] = "bleedings_demo.json",
-) -> None:
-    """Génère un rapport de [bold]démonstration[/bold] sans accès réseau"""
-    from smb_bleedings.agents.reporter import build_summary, generate_report
+def demo() -> None:
+    """Simulation animée d'un scan SMB (aucun fichier généré)"""
+    import random
+    import time
+
+    from rich.panel import Panel
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+    from rich.table import Table
 
     console.print(BANNER)
+    time.sleep(0.5)
 
+    # ── Demo data ──────────────────────────────────────────────────
     hosts = [
         Host(ip="192.168.1.10", hostname="SRV-FILE01.domain.local"),
         Host(ip="192.168.1.25", hostname=None),
@@ -308,144 +313,245 @@ def demo(
         for h, n, d in shares_data
     ]
 
-    findings = [
-        Finding(
-            share=shares[0],
-            acl_entries=[
+    findings_data = [
+        {
+            "share": shares[0],
+            "acl_entries": [
                 AclEntry("Tout le monde", "Full", "Allow"),
                 AclEntry("BUILTIN\\Administrators", "Full", "Allow"),
                 AclEntry("DOMAIN\\GRP-Compta", "Read", "Allow"),
                 AclEntry("SYSTEM", "Full", "Allow"),
             ],
-            dangerous_entries=[AclEntry("Tout le monde", "Full", "Allow")],
-            risk_level="CRITICAL", risk_score=95,
-            reasons=["[Commun] 'Everyone' → Full control granted to ALL users (anonymous included)"],
-            impacts=["[Commun] Anyone can read, modify or delete every file on this share, even without an account"],
-            recommendations=["Immediately remove 'Everyone' full control on 'Commun'. Command: icacls \"\\\\SRV-FILE01\\Commun\" /remove \"Everyone\""],
-            content_matches=[
-                ContentMatch(
-                    file_path="Comptabilite/config_backup.xml",
-                    file_size=4820,
-                    matched_keywords=["password", "connectionstring"],
-                    sha256="a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ),
-                ContentMatch(
-                    file_path="IT/deploy_notes.txt",
-                    file_size=1250,
-                    matched_keywords=["api_key", "token"],
-                    sha256="b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890ab",
-                ),
-                ContentMatch(
-                    file_path="RH/salaires_2025.xlsx",
-                    file_size=89400,
-                    matched_keywords=["iban", "salaire"],
-                    sha256="c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcd",
-                ),
+            "dangerous_entries": [AclEntry("Tout le monde", "Full", "Allow")],
+            "risk_level": "CRITICAL", "risk_score": 95,
+            "reasons": ["[Commun] 'Everyone' → Full control granted to ALL users (anonymous included)"],
+            "impacts": ["[Commun] Anyone can read, modify or delete every file on this share, even without an account"],
+            "recommendations": ["Immediately remove 'Everyone' full control on 'Commun'. Command: icacls \"\\\\SRV-FILE01\\Commun\" /remove \"Everyone\""],
+            "content_matches": [
+                ContentMatch(file_path="Comptabilite/config_backup.xml", file_size=4820, matched_keywords=["password", "connectionstring"], sha256="a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890"),
+                ContentMatch(file_path="IT/deploy_notes.txt", file_size=1250, matched_keywords=["api_key", "token"], sha256="b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890ab"),
+                ContentMatch(file_path="RH/salaires_2025.xlsx", file_size=89400, matched_keywords=["iban", "salaire"], sha256="c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcd"),
             ],
-        ),
-        Finding(
-            share=shares[1],
-            acl_entries=[
+        },
+        {
+            "share": shares[1],
+            "acl_entries": [
                 AclEntry("Domain Users", "Change", "Allow"),
                 AclEntry("BUILTIN\\Administrators", "Full", "Allow"),
                 AclEntry("DOMAIN\\Adm-ERP", "Full", "Allow"),
                 AclEntry("S-1-5-21-1234567890-9876543210-1122334455-1001", "Read", "Allow"),
             ],
-            dangerous_entries=[AclEntry("Domain Users", "Change", "Allow")],
-            risk_level="CRITICAL", risk_score=85,
-            reasons=["[Projets] 'Domain Users' → Change access granted to all domain users"],
-            impacts=["[Projets] Any employee can modify files — a single compromised account is enough to alter data"],
-            recommendations=["Create a dedicated AD security group (e.g. GS_Projets_RW) and replace 'Domain Users' on 'Projets'. Command: Remove-SmbShareAccess -Name \"Projets\" -AccountName \"Domain Users\" -Force"],
-            content_matches=[
-                ContentMatch(
-                    file_path="Infrastructure/credentials.ini",
-                    file_size=520,
-                    matched_keywords=["password", "motdepasse"],
-                    sha256="d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcde1",
-                ),
-                ContentMatch(
-                    file_path="DevOps/docker-compose.prod.yml",
-                    file_size=3200,
-                    matched_keywords=["password", "postgres://"],
-                    sha256="e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
-                ),
+            "dangerous_entries": [AclEntry("Domain Users", "Change", "Allow")],
+            "risk_level": "CRITICAL", "risk_score": 85,
+            "reasons": ["[Projets] 'Domain Users' → Change access granted to all domain users"],
+            "impacts": ["[Projets] Any employee can modify files — a single compromised account is enough to alter data"],
+            "recommendations": ["Create a dedicated AD security group (e.g. GS_Projets_RW) and replace 'Domain Users' on 'Projets'."],
+            "content_matches": [
+                ContentMatch(file_path="Infrastructure/credentials.ini", file_size=520, matched_keywords=["password", "motdepasse"], sha256="d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcde1"),
+                ContentMatch(file_path="DevOps/docker-compose.prod.yml", file_size=3200, matched_keywords=["password", "postgres://"], sha256="e5f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12"),
             ],
-        ),
-        Finding(
-            share=shares[4],
-            acl_entries=[
+        },
+        {
+            "share": shares[4],
+            "acl_entries": [
                 AclEntry("BUILTIN\\Users", "Change", "Allow"),
                 AclEntry("BUILTIN\\Administrators", "Full", "Allow"),
                 AclEntry("SYSTEM", "Full", "Allow"),
             ],
-            dangerous_entries=[AclEntry("BUILTIN\\Users", "Change", "Allow")],
-            risk_level="HIGH", risk_score=70,
-            reasons=["[Backup] 'BUILTIN\\Users' → Change access granted to local Users group"],
-            impacts=["[Backup] Local users can modify files on this share"],
-            recommendations=["Remove 'BUILTIN\\Users' on 'Backup' and restrict to business groups. Command: icacls \"\\\\NAS-BACKUP\\Backup\" /remove \"BUILTIN\\Users\""],
-        ),
-        Finding(
-            share=shares[3],
-            acl_entries=[
+            "dangerous_entries": [AclEntry("BUILTIN\\Users", "Change", "Allow")],
+            "risk_level": "HIGH", "risk_score": 70,
+            "reasons": ["[Backup] 'BUILTIN\\Users' → Change access granted to local Users group"],
+            "impacts": ["[Backup] Local users can modify files on this share"],
+            "recommendations": ["Remove 'BUILTIN\\Users' on 'Backup' and restrict to business groups."],
+        },
+        {
+            "share": shares[3],
+            "acl_entries": [
                 AclEntry("Everyone", "Read", "Allow"),
                 AclEntry("BUILTIN\\Administrators", "Full", "Allow"),
             ],
-            dangerous_entries=[AclEntry("Everyone", "Read", "Allow")],
-            risk_level="HIGH", risk_score=65,
-            reasons=["[Public] 'Everyone' → Read access granted to anyone (anonymous included)"],
-            impacts=["[Public] Data accessible without authentication — potential information leak"],
-            recommendations=["Replace 'Everyone' with a restricted AD group for legitimate users on 'Public'."],
-            content_matches=[
-                ContentMatch(
-                    file_path="Docs/vpn_access.pdf",
-                    file_size=156000,
-                    matched_keywords=["BEGIN PRIVATE KEY", "password"],
-                    sha256="f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234",
-                ),
+            "dangerous_entries": [AclEntry("Everyone", "Read", "Allow")],
+            "risk_level": "HIGH", "risk_score": 65,
+            "reasons": ["[Public] 'Everyone' → Read access granted to anyone (anonymous included)"],
+            "impacts": ["[Public] Data accessible without authentication — potential information leak"],
+            "recommendations": ["Replace 'Everyone' with a restricted AD group for legitimate users on 'Public'."],
+            "content_matches": [
+                ContentMatch(file_path="Docs/vpn_access.pdf", file_size=156000, matched_keywords=["BEGIN PRIVATE KEY", "password"], sha256="f67890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234"),
             ],
-        ),
-        Finding(
-            share=shares[8],
-            acl_entries=[
+        },
+        {
+            "share": shares[8],
+            "acl_entries": [
                 AclEntry("Domain Users", "Read", "Allow"),
                 AclEntry("BUILTIN\\Administrators", "Full", "Allow"),
                 AclEntry("DOMAIN\\GRP-Deploy", "Change", "Allow"),
             ],
-            dangerous_entries=[AclEntry("Domain Users", "Read", "Allow")],
-            risk_level="MEDIUM", risk_score=40,
-            reasons=["[Scripts] 'Domain Users' → Read access granted to all domain users"],
-            impacts=["[Scripts] All employees can view these files — verify this is intentional"],
-            recommendations=["Verify that 'Domain Users' read access on 'Scripts' is business-justified. If not, restrict to a dedicated group."],
-        ),
-        Finding(
-            share=shares[7],
-            acl_entries=[
+            "dangerous_entries": [AclEntry("Domain Users", "Read", "Allow")],
+            "risk_level": "MEDIUM", "risk_score": 40,
+            "reasons": ["[Scripts] 'Domain Users' → Read access granted to all domain users"],
+            "impacts": ["[Scripts] All employees can view these files — verify this is intentional"],
+            "recommendations": ["Verify that 'Domain Users' read access on 'Scripts' is business-justified."],
+        },
+        {
+            "share": shares[7],
+            "acl_entries": [
                 AclEntry("Authenticated Users", "Read", "Allow"),
                 AclEntry("BUILTIN\\Administrators", "Full", "Allow"),
                 AclEntry("DOMAIN\\SVC-AppLog", "Change", "Allow"),
             ],
-            dangerous_entries=[AclEntry("Authenticated Users", "Read", "Allow")],
-            risk_level="MEDIUM", risk_score=35,
-            reasons=["[Logs] 'Authenticated Users' → Read access granted to any authenticated user"],
-            impacts=["[Logs] Any account can read this data — broad exposure but may be legitimate"],
-            recommendations=["Evaluate whether 'Authenticated Users' read access on 'Logs' is needed. Consider a targeted AD group."],
-        ),
+            "dangerous_entries": [AclEntry("Authenticated Users", "Read", "Allow")],
+            "risk_level": "MEDIUM", "risk_score": 35,
+            "reasons": ["[Logs] 'Authenticated Users' → Read access granted to any authenticated user"],
+            "impacts": ["[Logs] Any account can read this data — broad exposure but may be legitimate"],
+            "recommendations": ["Evaluate whether 'Authenticated Users' read access on 'Logs' is needed."],
+        },
     ]
 
-    started = datetime.now(tz=timezone.utc)
-    summary = build_summary(
-        findings=findings,
-        ranges=["192.168.1.0/24", "10.0.0.0/24"],
-        total_ips=512,
-        hosts_discovered=len(hosts),
-        shares_total=len(shares),
-        started_at=started,
-        finished_at=started,
-    )
-    summary.duration_seconds = 47.3
+    # ── Fake IPs to scan (background noise) ───────────────────────
+    fake_ips = [f"192.168.1.{i}" for i in range(1, 255)] + [f"10.0.0.{i}" for i in range(1, 255)]
+    random.shuffle(fake_ips)
 
-    generate_report(findings, summary, output, "json", open_browser=False)
-    console.print(f"\n  [dim]Demo report saved:[/] {output}")
+    risk_colors = {"CRITICAL": "bold red", "HIGH": "yellow", "MEDIUM": "cyan", "INFO": "dim"}
+
+    # ═══════════════════════════════════════════════════════════════
+    # STAGE 1 — Discovery : TCP/445 sweep
+    # ═══════════════════════════════════════════════════════════════
+    console.print("\n  [bold cyan]▶ Stage 1/4[/] — [bold]Network Discovery[/] (TCP/445 sweep)")
+    console.print(f"  [dim]Scanning 192.168.1.0/24, 10.0.0.0/24 — 512 IPs[/dim]\n")
+    time.sleep(0.3)
+
+    host_ips = {h.ip for h in hosts}
+    discovered: list[Host] = []
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(bar_width=40),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("  Probing ports", total=len(fake_ips))
+        for ip in fake_ips:
+            time.sleep(random.uniform(0.002, 0.015))
+            progress.advance(task)
+            if ip in host_ips:
+                host = next(h for h in hosts if h.ip == ip)
+                discovered.append(host)
+                hostname_str = f" ({host.hostname})" if host.hostname else ""
+                progress.console.print(f"    [green]✓[/] [bold]{ip}[/]{hostname_str} — port 445 [green]open[/]")
+
+    console.print(f"\n  [bold green]{len(discovered)}[/] SMB hosts discovered\n")
+    time.sleep(0.6)
+
+    # ═══════════════════════════════════════════════════════════════
+    # STAGE 2 — Share Enumeration
+    # ═══════════════════════════════════════════════════════════════
+    console.print("  [bold cyan]▶ Stage 2/4[/] — [bold]Share Enumeration[/] (SMB connect)")
+    console.print("  [dim]Connecting as guest / anonymous session[/dim]\n")
+    time.sleep(0.3)
+
+    shares_by_host: dict[str, list[Share]] = {}
+    for s in shares:
+        shares_by_host.setdefault(s.host.ip, []).append(s)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(bar_width=40),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("  Enumerating shares", total=len(hosts))
+        for host in hosts:
+            time.sleep(random.uniform(0.4, 1.0))
+            host_shares = shares_by_host.get(host.ip, [])
+            hostname_str = host.hostname or host.ip
+            progress.console.print(f"    [bold]{hostname_str}[/] — [green]{len(host_shares)}[/] shares found")
+            for s in host_shares:
+                sys_tag = " [dim](system)[/]" if s.name in ("NETLOGON", "SYSVOL", "ADMIN$", "IPC$", "C$") else ""
+                progress.console.print(f"      [dim]├─[/] {s.name}{sys_tag}")
+                time.sleep(random.uniform(0.05, 0.15))
+            progress.advance(task)
+
+    console.print(f"\n  [bold green]{len(shares)}[/] shares enumerated across {len(hosts)} hosts\n")
+    time.sleep(0.6)
+
+    # ═══════════════════════════════════════════════════════════════
+    # STAGE 3 — ACL Analysis + Risk Scoring
+    # ═══════════════════════════════════════════════════════════════
+    console.print("  [bold cyan]▶ Stage 3/4[/] — [bold]ACL Analysis & Risk Scoring[/]")
+    console.print("  [dim]Reading security descriptors (READ_CONTROL)[/dim]\n")
+    time.sleep(0.3)
+
+    findings: list[Finding] = []
+    findings_by_share = {id(fd["share"]): fd for fd in findings_data}
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(bar_width=40),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("  Analyzing ACLs", total=len(shares))
+        for s in shares:
+            time.sleep(random.uniform(0.3, 0.8))
+            progress.advance(task)
+
+            fd = findings_by_share.get(id(s))
+            if fd is not None:
+                f = Finding(**fd)
+                findings.append(f)
+                color = risk_colors.get(f.risk_level, "dim")
+                progress.console.print(
+                    f"    [{color}]■ {f.risk_level:<8}[/{color}] "
+                    f"[bold]{s.name}[/] on {s.host.hostname or s.host.ip} "
+                    f"[dim](score {f.risk_score})[/]"
+                )
+                for de in f.dangerous_entries:
+                    progress.console.print(
+                        f"               [dim]└─[/] [{color}]{de.account} → {de.access_right}[/{color}]"
+                    )
+            else:
+                progress.console.print(
+                    f"    [dim]■ OK       {s.name}[/] on {s.host.hostname or s.host.ip}"
+                )
+
+    console.print(f"\n  [bold green]{len(findings)}[/] findings — ", end="")
+    crit = sum(1 for f in findings if f.risk_level == "CRITICAL")
+    high = sum(1 for f in findings if f.risk_level == "HIGH")
+    med = sum(1 for f in findings if f.risk_level == "MEDIUM")
+    console.print(f"[bold red]{crit} CRITICAL[/] · [yellow]{high} HIGH[/] · [cyan]{med} MEDIUM[/]\n")
+    time.sleep(0.6)
+
+    # ═══════════════════════════════════════════════════════════════
+    # STAGE 4 — Report Generation
+    # ═══════════════════════════════════════════════════════════════
+    console.print("  [bold cyan]▶ Stage 4/4[/] — [bold]Report Generation[/]")
+    time.sleep(0.3)
+
+    # Summary table
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column(style="dim")
+    table.add_column()
+    table.add_row("Hosts scanned", f"[bold]{len(hosts)}[/]")
+    table.add_row("Shares found", f"[bold]{len(shares)}[/]")
+    table.add_row("Findings", f"[bold]{len(findings)}[/]")
+    table.add_row("Critical", f"[bold red]{crit}[/]")
+    table.add_row("High", f"[yellow]{high}[/]")
+    table.add_row("Medium", f"[cyan]{med}[/]")
+
+    console.print()
+    console.print(Panel(table, title="[bold]Scan Summary[/]", border_style="green", width=45))
+
+    # Point to example JSON for dashboard usage
+    example_file = "examples/corporate_audit.json"
+    time.sleep(0.3)
+    console.print(f"\n  [bold green]✓[/] Demo complete — no file generated")
+    console.print(f"  [dim]Try with a real dataset:[/dim] [bold]bleedings dashboard -i {example_file}[/bold]\n")
 
 
 @app.command()
