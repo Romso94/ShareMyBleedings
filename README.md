@@ -10,6 +10,18 @@ Discovers SMB hosts, enumerates shares, analyzes ACLs, scans file contents for s
 
 ---
 
+## Demo
+
+### Scan in action
+
+![Scan demo](docs/demo/demo_scan.gif)
+
+### Interactive dashboard
+
+![Dashboard demo](docs/demo/demo_dashboard.gif)
+
+---
+
 ## Pipeline
 
 ```
